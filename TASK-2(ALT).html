@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Calculator Web Application</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        /* Global Styles */
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Softer, more professional neumorphic background gradient */
+            background: linear-gradient(135deg, #e0e0e0, #f0f0f0);
+            font-family: 'Inter', sans-serif; /* Professional font */
+            color: #333; /* Darker text for better contrast on light background */
+            overflow: hidden; /* Prevents scrollbars */
+        }
+
+        /* Calculator Container */
+        .calculator {
+            background: #f2f2f2; /* Main calculator body background */
+            padding: 30px;
+            border-radius: 25px; /* More pronounced rounded corners */
+            /* Enhanced neumorphic shadow for depth */
+            box-shadow: 12px 12px 24px #c8c8c8, -12px -12px 24px #ffffff;
+            width: 320px; /* Consistent width */
+            max-width: 90%; /* Responsive up to 90% of viewport width */
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* Increased gap for better spacing */
+            transition: all 0.3s ease; /* Smooth transition for potential hover effects */
+        }
+
+        /* Display Area */
+        .display {
+            background: #e8e8e8; /* Display background */
+            border-radius: 15px; /* More rounded display corners */
+            padding: 20px 15px;
+            text-align: right;
+            min-height: 90px; /* Taller display for two lines of text */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden; /* Hides overflowing text */
+            position: relative;
+            /* Inset shadow for a pressed-in display effect */
+            box-shadow: inset 5px 5px 10px #d1d1d1, inset -5px -5px 10px #ffffff;
+            color: #333; /* Dark text for the display */
+            font-variant-numeric: tabular-nums; /* Ensures numbers align vertically */
+        }
+
+        .display .previous-operand {
+            font-size: 1em; /* Smaller font for previous operation */
+            color: #888; /* Lighter gray for previous operand */
+            min-height: 1.2em; /* Ensures space even if empty */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .display .current-operand {
+            font-size: 2.5em; /* Larger, more prominent current result */
+            font-weight: 700; /* Bolder current result */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-top: 5px; /* Space between previous and current */
+        }
+
+        /* Buttons Grid */
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 columns */
+            gap: 15px; /* Space between buttons */
+        }
+
+        /* Button Base Styles */
+        .button {
+            padding: 18px; /* Generous padding for larger touch targets */
+            font-size: 1.6em; /* Large font for readability */
+            border: none;
+            border-radius: 15px; /* Rounded button corners */
+            background: #f0f0f0; /* Button background */
+            color: #333; /* Dark text for numbers */
+            box-shadow: 6px 6px 12px #d1d1d1, -6px -6px 12px #ffffff; /* Neumorphic shadow */
+            cursor: pointer;
+            transition: all 0.2s ease; /* Smooth transitions for all effects */
+            outline: none; /* Remove default focus outline */
+            font-weight: 500;
+        }
+
+        /* Operator Buttons */
+        .button.operator {
+            background: #e0e0e0; /* Slightly different background for operators */
+            color: #007bff; /* Blue for operators */
+            font-weight: 700;
+        }
+
+        /* Equal Button */
+        .button.equal {
+            background: #007bff; /* Vibrant blue for equal button */
+            color: #fff; /* White text on blue */
+            font-weight: bold;
+            grid-column: span 2; /* Spans two columns */
+            box-shadow: 6px 6px 12px #0069d9, -6px -6px 12px #008cff; /* Blue neumorphic shadow */
+        }
+
+        /* Clear and Delete Buttons */
+        .button.clear, .button.delete {
+            background: #ff6347; /* Tomato red for clear/delete */
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 6px 6px 12px #d9534f, -6px -6px 12px #ff7a75; /* Red neumorphic shadow */
+        }
+
+        /* Button Hover Effects */
+        .button:hover:not(:disabled) {
+            background: #e0e0e0; /* Slightly darker on hover */
+            transform: translateY(-2px); /* Subtle lift on hover */
+            box-shadow: 8px 8px 16px #c8c8c8, -8px -8px 16px #ffffff; /* More pronounced shadow */
+        }
+
+        .button.operator:hover:not(:disabled) {
+            background: #d0d0d0; /* Darker operator background on hover */
+            box-shadow: 8px 8px 16px #0069d9, -8px -8px 16px #008cff; /* More intense blue shadow */
+        }
+
+        .button.equal:hover:not(:disabled) {
+            background: #0069d9; /* Darker blue on hover */
+            box-shadow: 8px 8px 16px #0056b3, -8px -8px 16px #007bff;
+        }
+
+        .button.clear:hover:not(:disabled), .button.delete:hover:not(:disabled) {
+            background: #e5533e; /* Darker red on hover */
+            box-shadow: 8px 8px 16px #c0403a, -8px -8px 16px #ff7a75;
+        }
+
+        /* Button Active (Pressed) State */
+        .button:active:not(:disabled) {
+            box-shadow: inset 3px 3px 6px #ccc, inset -3px -3px 6px #fff; /* Inset shadow for pressed effect */
+            transform: translateY(0); /* Reset lift */
+            background: #e8e8e8; /* Slightly lighter background when pressed */
+        }
+
+        /* Operator/Equal/Clear/Delete Active State */
+        .button.operator:active, .button.equal:active, .button.clear:active, .button.delete:active {
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.2), inset -3px -3px 6px rgba(255,255,255,0.2);
+            background: #d0d0d0; /* Generic pressed state for colored buttons */
+        }
+        .button.equal:active { background: #0056b3; } /* Specific pressed state for equal */
+        .button.clear:active, .button.delete:active { background: #c0403a; } /* Specific pressed state for clear/delete */
+        .button.operator:active { background: #0069d9; } /* Specific pressed state for operator */
+
+
+        /* Disabled Button State */
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: 3px 3px 6px #d1d1d1, -3px -3px 6px #ffffff; /* Faded neumorphic shadow */
+            transform: none;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 400px) {
+            .calculator {
+                padding: 20px;
+                gap: 15px;
+                border-radius: 20px;
+            }
+
+            .display {
+                font-size: 1.8em;
+                padding: 15px 10px;
+                min-height: 70px;
+                border-radius: 12px;
+            }
+
+            .display .previous-operand {
+                font-size: 0.9em;
+            }
+
+            .display .current-operand {
+                font-size: 1.4em;
+            }
+
+            .buttons-grid {
+                gap: 10px;
+            }
+
+            .button {
+                padding: 15px;
+                font-size: 1.3em;
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator">
+    <div class="display">
+        <div class="previous-operand" data-previous-operand></div>
+        <div class="current-operand" data-current-operand>0</div>
+    </div>
+    <div class="buttons-grid">
+        <button class="button clear" data-all-clear>AC</button>
+        <button class="button delete" data-delete>DEL</button>
+        <button class="button operator" data-operator>%</button>
+        <button class="button operator" data-operator>÷</button>
+
+        <button class="button" data-number>7</button>
+        <button class="button" data-number>8</button>
+        <button class="button" data-number>9</button>
+        <button class="button operator" data-operator>×</button>
+
+        <button class="button" data-number>4</button>
+        <button class="button" data-number>5</button>
+        <button class="button" data-number>6</button>
+        <button class="button operator" data-operator>-</button>
+
+        <button class="button" data-number>1</button>
+        <button class="button" data-number>2</button>
+        <button class="button" data-number>3</button>
+        <button class="button operator" data-operator>+</button>
+
+        <button class="button" data-number>0</button>
+        <button class="button" data-number>.</button>
+        <button class="button equal" data-equal>=</button>
+    </div>
+</div>
+
+<script>
+    class Calculator {
+        constructor(previousOperandTextElement, currentOperandTextElement) {
+            this.previousOperandTextElement = previousOperandTextElement;
+            this.currentOperandTextElement = currentOperandTextElement;
+            this.clear();
+        }
+
+        // Clears all inputs and resets the calculator state
+        clear() {
+            this.currentOperand = '0';
+            this.previousOperand = '';
+            this.operation = undefined;
+            this.isComputed = false; // Flag to know if the last action was a computation
+        }
+
+        // Deletes the last character from the current operand
+        delete() {
+            if (this.currentOperand === '0' || this.currentOperand === 'Error') {
+                this.clear(); // If it's an error or just '0', clear completely
+                return;
+            }
+            if (this.isComputed) { // If last action was '=', clear everything
+                this.clear();
+                return;
+            }
+            this.currentOperand = this.currentOperand.toString().slice(0, -1);
+            if (this.currentOperand === '') {
+                this.currentOperand = '0';
+            }
+        }
+
+        // Appends a number or decimal point to the current operand
+        appendNumber(number) {
+            // If the last action was a computation, start a new calculation
+            if (this.isComputed && !this.operation) {
+                this.currentOperand = '0';
+                this.previousOperand = '';
+                this.isComputed = false;
+            }
+
+            // If current operand is 'Error', clear it before appending
+            if (this.currentOperand === 'Error') {
+                this.currentOperand = '0';
+            }
+
+            // Prevent multiple decimal points
+            if (number === '.' && this.currentOperand.includes('.')) return;
+
+            // Prevent multiple leading zeros, but allow '0.'
+            if (this.currentOperand === '0' && number !== '.') {
+                this.currentOperand = number.toString();
+            } else {
+                this.currentOperand = this.currentOperand.toString() + number.toString();
+            }
+            this.isComputed = false; // Reset computation flag
+        }
+
+        // Sets the chosen operation
+        chooseOperation(operation) {
+            // If current operand is empty and no previous operand, do nothing
+            if (this.currentOperand === '' && this.previousOperand === '') return;
+
+            // If current operand is 'Error', clear it first
+            if (this.currentOperand === 'Error') {
+                this.clear();
+                this.updateDisplay();
+                return;
+            }
+
+            // If there's a current operand but no previous operand, just set the operation
+            if (this.currentOperand !== '' && this.previousOperand === '') {
+                this.operation = operation;
+                this.previousOperand = this.currentOperand;
+                this.currentOperand = '';
+            }
+            // If both operands are present, compute first then set new operation
+            else if (this.currentOperand !== '' && this.previousOperand !== '') {
+                this.compute();
+                // After compute, if currentOperand is not an error, set new operation
+                if (this.currentOperand !== 'Error') {
+                    this.operation = operation;
+                    this.previousOperand = this.currentOperand;
+                    this.currentOperand = '';
+                }
+            }
+            // If only previous operand and operation are set, change the operation
+            else if (this.previousOperand !== '' && this.currentOperand === '') {
+                this.operation = operation;
+            }
+            this.isComputed = false; // Reset computation flag
+        }
+
+        // Computes the result of the operation
+        compute() {
+            let computation;
+            const prev = parseFloat(this.previousOperand);
+            const current = parseFloat(this.currentOperand);
+
+            // If either operand is not a number, or if there's no operation, return
+            if (isNaN(prev) || isNaN(current) || this.operation === undefined) return;
+
+            // Perform computation based on the chosen operation
+            switch (this.operation) {
+                case '+':
+                    computation = prev + current;
+                    break;
+                case '-':
+                    computation = prev - current;
+                    break;
+                case '×':
+                    computation = prev * current;
+                    break;
+                case '÷':
+                    // Handle division by zero error
+                    if (current === 0) {
+                        this.currentOperand = 'Error';
+                        this.previousOperand = '';
+                        this.operation = undefined;
+                        this.isComputed = true;
+                        return;
+                    }
+                    computation = prev / current;
+                    break;
+                case '%': // Modulo operation
+                    computation = prev % current;
+                    break;
+                default:
+                    return; // If no valid operation, do nothing
+            }
+            // Set the result as the new current operand
+            this.currentOperand = computation;
+            this.operation = undefined; // Clear the operation
+            this.previousOperand = ''; // Clear the previous operand
+            this.isComputed = true; // Set computation flag
+        }
+
+        // Formats numbers for display (e.g., adds commas for thousands)
+        getDisplayNumber(number) {
+            if (number === 'Error') return 'Error'; // Display error directly
+
+            const stringNumber = number.toString();
+            const integerDigits = parseFloat(stringNumber.split('.')[0]);
+            const decimalDigits = stringNumber.split('.')[1];
+            let integerDisplay;
+
+            // Format integer part with commas
+            if (isNaN(integerDigits)) {
+                integerDisplay = '';
+            } else {
+                // Limit to a reasonable number of digits to prevent overflow
+                integerDisplay = new Intl.NumberFormat('en-US', {
+                    maximumFractionDigits: 10 // Allow up to 10 decimal places for formatting
+                }).format(integerDigits);
+            }
+
+            // If there are decimal digits, append them
+            if (decimalDigits != null) {
+                // Limit decimal digits to prevent excessive length
+                return `${integerDisplay}.${decimalDigits.slice(0, 10)}`;
+            } else {
+                return integerDisplay;
+            }
+        }
+
+        // Updates the calculator display
+        updateDisplay() {
+            this.currentOperandTextElement.innerText = this.getDisplayNumber(this.currentOperand);
+            // Display previous operand and operation if an operation is selected
+            if (this.operation != null) {
+                this.previousOperandTextElement.innerText =
+                    `${this.getDisplayNumber(this.previousOperand)} ${this.operation}`;
+            } else {
+                this.previousOperandTextElement.innerText = ''; // Clear previous display
+            }
+        }
+    }
+
+    // Select all necessary DOM elements
+    const numberButtons = document.querySelectorAll('[data-number]');
+    const operatorButtons = document.querySelectorAll('[data-operator]');
+    const equalButton = document.querySelector('[data-equal]');
+    const deleteButton = document.querySelector('[data-delete]');
+    const allClearButton = document.querySelector('[data-all-clear]');
+    const previousOperandTextElement = document.querySelector('[data-previous-operand]');
+    const currentOperandTextElement = document.querySelector('[data-current-operand]');
+
+    // Create a new Calculator instance
+    const calculator = new Calculator(previousOperandTextElement, currentOperandTextElement);
+
+    // Add event listeners for number buttons
+    numberButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            calculator.appendNumber(button.innerText);
+            calculator.updateDisplay();
+        });
+    });
+
+    // Add event listeners for operator buttons
+    operatorButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            calculator.chooseOperation(button.innerText);
+            calculator.updateDisplay();
+        });
+    });
+
+    // Add event listener for the equal button
+    equalButton.addEventListener('click', () => {
+        calculator.compute();
+        calculator.updateDisplay();
+    });
+
+    // Add event listener for the All Clear (AC) button
+    allClearButton.addEventListener('click', () => {
+        calculator.clear();
+        calculator.updateDisplay();
+    });
+
+    // Add event listener for the Delete (DEL) button
+    deleteButton.addEventListener('click', () => {
+        calculator.delete();
+        calculator.updateDisplay();
+    });
+
+    // Keyboard input handling
+    document.addEventListener('keydown', e => {
+        // Numbers and decimal point
+        if (e.key >= '0' && e.key <= '9' || e.key === '.') {
+            e.preventDefault(); // Prevent default browser behavior for some keys
+            calculator.appendNumber(e.key);
+            calculator.updateDisplay();
+        }
+        // Operators (+, -, *, /)
+        else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+            e.preventDefault();
+            // Map keyboard operators to display operators
+            calculator.chooseOperation(e.key === '*' ? '×' : (e.key === '/' ? '÷' : e.key));
+            calculator.updateDisplay();
+        }
+        // Enter or Equal key for computation
+        else if (e.key === 'Enter' || e.key === '=') {
+            e.preventDefault(); // Prevent default Enter key behavior (e.g., form submission)
+            calculator.compute();
+            calculator.updateDisplay();
+        }
+        // Backspace key for deletion
+        else if (e.key === 'Backspace') {
+            e.preventDefault();
+            calculator.delete();
+            calculator.updateDisplay();
+        }
+        // Escape key for clearing all
+        else if (e.key === 'Escape') {
+            e.preventDefault();
+            calculator.clear();
+            calculator.updateDisplay();
+        }
+    });
+</script>
+
+</body>
+</html>
